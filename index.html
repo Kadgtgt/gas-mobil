@@ -952,7 +952,7 @@ function renderSizes(){
     </div>`).join('');
 }
 function pickSize(s){orderSize=s;renderSizes()}
-function placeOrder(){toast('Order placed! Tracking now…');setTimeout(()=>go('track'),700)}
+function placeOrder(){toast('Order placed! Tracking now…');setTimeout(()=>go('tracking'),700)}
 
 // Update summary when entering it
 const _origGo=go;

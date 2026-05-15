@@ -1,2 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+.DS_Store
 .vscode
-settings.json
+.idea
+*.swp
+*.swo
+*~
+coverage/
+.expo
+.expo-shared

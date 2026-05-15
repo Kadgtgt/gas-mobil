@@ -601,7 +601,7 @@ background:var(--grad-blue);color:#fff;font-weight:600;
     <div class="cyl-info">
       <h4><i class="fi fi-sr-flame flame-i"></i> 6kg Cylinder</h4>
       <div class="warn"><i class="fi fi-rr-triangle-warning"></i> ~3 days left — Refill soon!</div>
-      <div class="insp"><span class="dot"></span> Inspected Jan 12, 2026</div>
+      <div class="insp"><span class="dot"></span> Inspected <span id="inspectDateText"></span></div>
     </div>
   </div>
 
@@ -651,7 +651,7 @@ background:var(--grad-blue);color:#fff;font-weight:600;
       <li><i class="fi fi-rr-globe"></i> www.gasmobil.ug</li>
     </ul>
     <hr>
-    <div class="copy">© 2026 Gasmobil Uganda. All rights reserved. Powered by<br><span class="accent">Lambula Creative Agency.</span></div>
+    <div class="copy">© <span id="year"></span> Gasmobil Uganda. All rights reserved. Powered by<br><span class="accent">Lambula Creative Agency.</span></div>
   </div>
 </div>
 
@@ -1025,6 +1025,17 @@ renderSizes();renderAcc();renderCart();
   window.addEventListener('load', ()=>{
     setTimeout(()=>{ const s=document.getElementById('splash'); if(s) s.classList.add('hide'); setTimeout(()=>s&&s.remove(), 2000); }, 4000);
   });
+
+  /* Auto date texts (footer year + inspection date) */
+  const yearEl = document.getElementById('year');
+  if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
+  const inspectEl = document.getElementById('inspectDateText');
+  if (inspectEl) {
+    const d = new Date();
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    inspectEl.textContent = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
 
   /* Manifest via blob (works for single-file HTML download) */
   const iconSvg = "data:image/svg+xml;base64," + btoa(

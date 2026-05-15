@@ -1,0 +1,24 @@
+{
+  "name": "gas-mobil-monorepo",
+  "version": "1.0.0",
+  "description": "Gas cylinder delivery app - React Native + Node.js + MongoDB",
+  "private": true,
+  "workspaces": [
+    "apps/mobile",
+    "apps/api",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:mobile": "cd apps/mobile && npx expo start",
+    "dev:api": "cd apps/api && npm run dev",
+    "dev": "concurrently \"npm run dev:mobile\" \"npm run dev:api\"",
+    "build:mobile": "cd apps/mobile && npx expo export",
+    "build:api": "cd apps/api && npm run build",
+    "test": "npm run test:mobile && npm run test:api",
+    "test:mobile": "cd apps/mobile && npm test",
+    "test:api": "cd apps/api && npm test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

@@ -13,7 +13,7 @@ import {
   Truck, 
   Zap,
   ChevronRight,
-  TriangleAlert,
+  AlertTriangle,
   Phone,
   Mail,
   Globe
@@ -104,7 +104,7 @@ export default function HomeScreen() {
               <Text style={styles.cylTitle}>6kg Cylinder</Text>
             </View>
             <View style={styles.warnRow}>
-              <TriangleAlert size={12} color={statusColor} />
+              <AlertTriangle size={12} color={statusColor} />
               <Text style={[styles.warnText, { color: statusColor }]}>{getStatusText(percent)}</Text>
             </View>
             <View style={styles.inspRow}>

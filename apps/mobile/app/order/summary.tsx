@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Wallet, Smartphone, Clock, ChevronRight } from "lucide-react-native";
+import { ChevronLeft, Wallet, Smartphone, Clock, ChevronRight, Check } from "lucide-react-native";
 import { useCart } from "../CartContext";
 import { createOrder } from "../apiClient";
 
@@ -25,16 +25,64 @@ export default function OrderSummaryScreen() {
 		setLastOrderId,
 	} = useCart();
 	const [loading, setLoading] = useState(false);
+	const [successMessage, setSuccessMessage] = useState("");
 
 	const PRICES: Record<string, Record<string, number>> = {
 		swap: { "6kg": 50000, "12kg": 100000, "45kg": 250000 },
 		buy: { "6kg": 157000, "12kg": 270000, "45kg": 525000 },
 	};
 
+	const selectedOrderType =
+		params.type === "buy" ? "buy"
+		: params.type === "swap" ? "swap"
+		: undefined;
+	const selectedSize = (params.size as string) || "12kg";
+	const selectedItem =
+		selectedOrderType ?
+			{
+				itemId: `cylinder-${selectedSize}`,
+				name:
+					selectedOrderType === "buy" ?
+						`Buy New ${selectedSize}`
+					:	`Swap Refill ${selectedSize}`,
+				type: "cylinder",
+				unitPrice: PRICES[selectedOrderType][selectedSize] || 0,
+				quantity: 1,
+			}
+		:	undefined;
+	const displayTotal = cartItems.length > 0 ? totalPrice : selectedItem?.unitPrice || 0;
+
+	const handlePaymentOption = async (option: string) => {
+		setPaymentMethod(option as any);
+		if (option === "cash") {
+			return;
+		}
+
+		if (option === "visa") {
+			const url = "https://www.mastercard.com/global/en/personal/find-card-products.html";
+			Linking.openURL(url).catch(() => {
+				Alert.alert("Unable to open link", "Could not open the payment page.");
+			});
+			return;
+		}
+
+		if (option === "mtn" || option === "airtel") {
+			const phone = option === "mtn" ? "+256770000000" : "+256780000000";
+			Linking.openURL(`tel:${phone}`).catch(() => {
+				Alert.alert("Unable to open dialer", "Could not open the phone dialer.");
+			});
+		}
+	};
+
 	const handlePlaceOrder = async () => {
 		// Allow placing an order even if the cart is empty (backend will accept empty items).
 		if (!deliveryAddress.trim()) {
 			Alert.alert("Missing address", "Please provide a delivery address.");
+			return;
+		}
+
+		if (!paymentMethod) {
+			Alert.alert("Payment required", "Choose a payment method before placing your order.");
 			return;
 		}
 
@@ -71,16 +119,24 @@ export default function OrderSummaryScreen() {
 				totalPrice: computedTotal,
 				deliveryAddress,
 				paymentMethod,
-				orderType: params.type,
+				orderType:
+					params.type === "buy" ? "buy_new"
+					: params.type === "swap" ? "swap"
+					: params.type,
 			});
 
 			const orderId = response?.data?.order?._id || response?.data?.order?.id;
 			if (orderId) {
 				setLastOrderId(orderId.toString());
 				clearCart();
+				setSuccessMessage("Order successfully placed");
+				setLoading(false);
+				setTimeout(() => {
+					setSuccessMessage("");
+					router.push("/(tabs)/tracking");
+				}, 3000);
+				return;
 			}
-
-			router.push("/(tabs)/tracking");
 		} catch (error) {
 			Alert.alert("Order failed", (error as Error).message || "Unable to place the order.");
 		} finally {
@@ -155,6 +211,32 @@ export default function OrderSummaryScreen() {
 							</Text>
 						</View>
 					))}
+					{!cartItems.length && selectedItem ?
+						<View
+							style={{
+								flexDirection: "row",
+								justifyContent: "space-between",
+								alignItems: "center",
+								paddingTop: 14,
+								borderTopWidth: 1,
+								borderTopColor: "#1F2A3D",
+							}}
+						>
+							<View style={{ flex: 1, paddingRight: 12 }}>
+								<Text style={{ color: "#fff", fontSize: 14, fontWeight: "600" }}>
+									{selectedItem.name}
+								</Text>
+								<Text style={{ color: "#8A93A6", fontSize: 12 }}>
+									{selectedItem.quantity} x UGX{" "}
+									{selectedItem.unitPrice.toLocaleString()}
+								</Text>
+							</View>
+							<Text style={{ color: "#fff", fontWeight: "700" }}>
+								UGX{" "}
+								{(selectedItem.unitPrice * selectedItem.quantity).toLocaleString()}
+							</Text>
+						</View>
+					:	null}
 					<View
 						style={{
 							borderTopWidth: 1,
@@ -180,7 +262,7 @@ export default function OrderSummaryScreen() {
 							Total
 						</Text>
 						<Text style={{ fontSize: 15, color: "#1484FF", fontWeight: "700" }}>
-							UGX {totalPrice.toLocaleString()}
+							UGX {displayTotal.toLocaleString()}
 						</Text>
 					</View>
 				</View>
@@ -195,11 +277,26 @@ export default function OrderSummaryScreen() {
 				>
 					Pay with
 				</Text>
+				{successMessage ?
+					<View
+						style={{
+							marginHorizontal: 16,
+							marginBottom: 14,
+							padding: 12,
+							borderRadius: 14,
+							backgroundColor: "#14345c",
+						}}
+					>
+						<Text style={{ color: "#8ef0a5", fontWeight: "700" }}>
+							{successMessage}
+						</Text>
+					</View>
+				:	null}
 				<View style={{ marginHorizontal: 16, gap: 10 }}>
 					{PAYMENT_OPTIONS.map((option) => (
 						<TouchableOpacity
 							key={option.value}
-							onPress={() => setPaymentMethod(option.value as any)}
+							onPress={() => handlePaymentOption(option.value)}
 							style={{
 								flexDirection: "row",
 								alignItems: "center",
@@ -219,10 +316,9 @@ export default function OrderSummaryScreen() {
 									{option.subtitle}
 								</Text>
 							</View>
-							<ChevronRight
-								size={16}
-								color={paymentMethod === option.value ? "#1484FF" : "#8A93A6"}
-							/>
+							{paymentMethod === option.value ?
+								<Check size={16} color="#1484FF" />
+							:	<ChevronRight size={16} color="#8A93A6" />}
 						</TouchableOpacity>
 					))}
 				</View>

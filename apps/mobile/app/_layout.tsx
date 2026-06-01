@@ -1,10 +1,13 @@
 import { Slot } from "expo-router";
 import { CartProvider } from "./CartContext";
+import { AuthProvider } from "./AuthContext";
 
 export default function Layout() {
 	return (
-		<CartProvider>
-			<Slot />
-		</CartProvider>
+		<AuthProvider>
+			<CartProvider>
+				<Slot />
+			</CartProvider>
+		</AuthProvider>
 	);
 }

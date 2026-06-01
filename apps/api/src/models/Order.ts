@@ -10,6 +10,7 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
 	userId: string;
+	userName: string;
 	items?: IOrderItem[];
 	cylinderId?: string;
 	quantity?: number;

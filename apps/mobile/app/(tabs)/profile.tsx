@@ -12,6 +12,7 @@ import {
 	LogOut,
 	ChevronRight,
 } from "lucide-react-native";
+import { useAuth } from "../AuthContext";
 
 interface MenuItem {
 	icon: string;
@@ -30,6 +31,7 @@ const MENU_ITEMS: MenuItem[] = [
 
 export default function ProfileScreen() {
 	const router = useRouter();
+	const { user, logout } = useAuth();
 
 	const getIcon = (iconName: string) => {
 		const props = { size: 18, color: "#8A93A6" };
@@ -63,10 +65,14 @@ export default function ProfileScreen() {
 
 				<View style={styles.profileCard}>
 					<View style={styles.avatar}>
-						<Text style={styles.avatarText}>KA</Text>
+						<Text style={styles.avatarText}>
+							{user?.name?.slice(0, 2).toUpperCase() || "GM"}
+						</Text>
 					</View>
 					<View>
-						<Text style={styles.profileName}>kayanjajohn@gasmobil.ug</Text>
+						<Text style={styles.profileName}>
+							{user?.email || "No email available"}
+						</Text>
 						<View style={styles.modeRow}>
 							<View style={styles.modeDot} />
 							<Text style={styles.modeText}>Consumer Mode</Text>
@@ -95,7 +101,13 @@ export default function ProfileScreen() {
 					))}
 				</View>
 
-				<TouchableOpacity style={styles.signOutBtn}>
+				<TouchableOpacity
+					style={styles.signOutBtn}
+					onPress={() => {
+						logout();
+						router.replace("/");
+					}}
+				>
 					<LogOut size={16} color="#ff6b6b" />
 					<Text style={styles.signOutText}>Sign Out</Text>
 				</TouchableOpacity>

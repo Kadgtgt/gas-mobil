@@ -7,6 +7,7 @@ export const createOrder = async (req: Request, res: Response) => {
 		const { items, cylinderId, quantity, totalPrice, deliveryAddress, paymentMethod } =
 			req.body;
 		const userId = (req as any).userId || process.env.DEMO_USER_ID || "demo-user";
+		const userName = (req as any).userName || process.env.DEMO_USER_NAME || "Demo User";
 
 		if (!deliveryAddress) {
 			return res.status(400).json({ success: false, error: "Delivery address is required" });
@@ -41,6 +42,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
 		const order = new Order({
 			userId,
+			userName,
 			items: orderItems,
 			cylinderId: cylinderId || orderItems[0]?.itemId,
 			quantity:

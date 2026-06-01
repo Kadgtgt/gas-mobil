@@ -1,13 +1,48 @@
+import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, MapPin } from "lucide-react-native";
+import * as Location from "expo-location";
 import { useCart } from "../CartContext";
 
 export default function OrderLocationScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
 	const { cartItems, deliveryAddress, setDeliveryAddress } = useCart();
+	const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
+	const [locationStatus, setLocationStatus] = useState("Locating...");
+
+	useEffect(() => {
+		let subscription: Location.LocationSubscription | null = null;
+
+		const requestLocation = async () => {
+			const { status } = await Location.requestForegroundPermissionsAsync();
+			if (status !== "granted") {
+				setLocationStatus("Location permission denied");
+				return;
+			}
+
+			const position = await Location.getCurrentPositionAsync({
+				accuracy: Location.Accuracy.Highest,
+			});
+			setCurrentLocation(position);
+			setLocationStatus("Live location active");
+
+			subscription = await Location.watchPositionAsync(
+				{ accuracy: Location.Accuracy.Highest, distanceInterval: 5 },
+				(pos) => setCurrentLocation(pos),
+			);
+		};
+
+		requestLocation().catch(() => {
+			setLocationStatus("Unable to access location");
+		});
+
+		return () => {
+			subscription?.remove();
+		};
+	}, []);
 
 	const handleContinue = () => {
 		// Allow proceeding when order type is provided via params even if cart is empty
@@ -84,9 +119,22 @@ export default function OrderLocationScreen() {
 					}}
 				>
 					<MapPin size={32} color="#1484FF" />
-					<Text style={{ color: "#8A93A6", fontSize: 11, marginTop: 8 }}>
-						Map integration coming soon
+					<Text style={{ color: "#fff", fontSize: 14, marginTop: 12, fontWeight: "600" }}>
+						{currentLocation ? "Live location active" : locationStatus}
 					</Text>
+					{currentLocation ?
+						<Text
+							style={{
+								color: "#8A93A6",
+								fontSize: 12,
+								marginTop: 8,
+								textAlign: "center",
+							}}
+						>
+							Lat {currentLocation.coords.latitude.toFixed(5)} · Lon{" "}
+							{currentLocation.coords.longitude.toFixed(5)}
+						</Text>
+					:	null}
 				</View>
 				<Text
 					style={{

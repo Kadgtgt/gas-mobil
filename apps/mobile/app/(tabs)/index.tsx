@@ -165,7 +165,7 @@ export default function HomeScreen() {
 					<Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
 				</View>
 				<View style={styles.actions}>
-					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=swap')}> 
+					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=swap&size=12kg')}> 
 						<View
 							style={[styles.actionIcon, { backgroundColor: "rgba(20,132,255,.15)" }]}
 						>
@@ -173,7 +173,7 @@ export default function HomeScreen() {
 						</View>
 						<Text style={styles.actionText}>Swap Refill</Text>
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=buy')}> 
+					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=buy&size=12kg')}> 
 						<View
 							style={[styles.actionIcon, { backgroundColor: "rgba(255,77,77,.15)" }]}
 						>

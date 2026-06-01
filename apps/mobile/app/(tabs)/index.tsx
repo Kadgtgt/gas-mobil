@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -19,32 +18,14 @@ import {
 	Mail,
 	Globe,
 } from "lucide-react-native";
-=======
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useState, useEffect } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { 
-  Flame, 
-  Bell, 
-  MapPin, 
-  RefreshCw, 
-  ShoppingBag, 
-  Map, 
-  Settings, 
-  Truck, 
-  Zap,
-  ChevronRight,
-  AlertTriangle,
-  Phone,
-  Mail,
-  Globe
-} from 'lucide-react-native';
->>>>>>> 535bc13525c29ad71d118402ea6db457d018882a
+import { useCart } from "../CartContext";
+import { createOrder } from "../apiClient";
 
 export default function HomeScreen() {
 	const router = useRouter();
 	const [percent, setPercent] = useState<number>(15);
+	const [loadingOrder, setLoadingOrder] = useState(false);
+	const { deliveryAddress, paymentMethod, setLastOrderId, clearCart } = useCart();
 
 	// Cylinder drain animation
 	useEffect(() => {
@@ -72,6 +53,36 @@ export default function HomeScreen() {
 		: "FULL";
 
 	const statusColor = getStatusColor(percent);
+
+	const handleQuickOrder = async (type: 'swap' | 'buy_new' | 'quick') => {
+		if (!deliveryAddress || !deliveryAddress.trim()) {
+			Alert.alert("No delivery address", "Please set a delivery address before placing a quick order.", [
+				{ text: "Enter address", onPress: () => router.push("/order/location") },
+				{ text: "Cancel", style: "cancel" },
+			]);
+			return;
+		}
+		setLoadingOrder(true);
+		try {
+			const res = await createOrder({
+				items: [],
+				totalPrice: 0,
+				deliveryAddress,
+				paymentMethod,
+				orderType: type,
+			});
+			const orderId = res?.data?.order?._id || res?.data?.order?.id;
+			if (orderId) {
+				setLastOrderId(orderId.toString());
+				clearCart();
+			}
+			router.push("/(tabs)/tracking");
+		} catch (err: any) {
+			Alert.alert("Order failed", err?.message || "Unable to place order");
+		} finally {
+			setLoadingOrder(false);
+		}
+	};
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -107,9 +118,9 @@ export default function HomeScreen() {
 						</Text>
 						<TouchableOpacity
 							style={styles.btnPrimary}
-							onPress={() => router.push("/order")}
-						>
-							<Text style={styles.btnText}>Order Now</Text>
+						onPress={() => router.push('/order?type=quick')}
+					>
+						<Text style={styles.btnText}>Order Now</Text>
 							<ChevronRight size={16} color="#fff" />
 						</TouchableOpacity>
 					</View>
@@ -118,7 +129,6 @@ export default function HomeScreen() {
 					</View>
 				</View>
 
-<<<<<<< HEAD
 				{/* Cylinder Card */}
 				<View style={styles.sectionLabel}>
 					<Text style={styles.sectionTitle}>YOUR CYLINDER</Text>
@@ -149,41 +159,13 @@ export default function HomeScreen() {
 						</View>
 					</View>
 				</View>
-=======
-        {/* Cylinder Card */}
-        <View style={styles.sectionLabel}>
-          <Text style={styles.sectionTitle}>YOUR CYLINDER</Text>
-        </View>
-        <View style={styles.cylinderCard}>
-          <View style={[styles.progressRing, { borderColor: statusColor }]}>
-            <View style={styles.progressInner}>
-              <Text style={[styles.percentText, { color: statusColor }]}>{Math.round(percent)}%</Text>
-              <Text style={styles.fullLabel}>{getStatusLabel(percent)}</Text>
-            </View>
-          </View>
-          <View style={styles.cylInfo}>
-            <View style={styles.cylTitleRow}>
-              <Flame size={14} color="#1484FF" />
-              <Text style={styles.cylTitle}>6kg Cylinder</Text>
-            </View>
-            <View style={styles.warnRow}>
-              <AlertTriangle size={12} color={statusColor} />
-              <Text style={[styles.warnText, { color: statusColor }]}>{getStatusText(percent)}</Text>
-            </View>
-            <View style={styles.inspRow}>
-              <View style={[styles.inspDot, { backgroundColor: '#22c55e' }]} />
-              <Text style={styles.inspText}>Inspected May 16, 2026</Text>
-            </View>
-          </View>
-        </View>
->>>>>>> 535bc13525c29ad71d118402ea6db457d018882a
 
 				{/* Quick Actions */}
 				<View style={styles.sectionLabel}>
 					<Text style={styles.sectionTitle}>QUICK ACTIONS</Text>
 				</View>
 				<View style={styles.actions}>
-					<TouchableOpacity style={styles.action} onPress={() => router.push("/order")}>
+					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=swap')}> 
 						<View
 							style={[styles.actionIcon, { backgroundColor: "rgba(20,132,255,.15)" }]}
 						>
@@ -191,7 +173,7 @@ export default function HomeScreen() {
 						</View>
 						<Text style={styles.actionText}>Swap Refill</Text>
 					</TouchableOpacity>
-					<TouchableOpacity style={styles.action} onPress={() => router.push("/order")}>
+					<TouchableOpacity style={styles.action} onPress={() => router.push('/order?type=buy')}> 
 						<View
 							style={[styles.actionIcon, { backgroundColor: "rgba(255,77,77,.15)" }]}
 						>

@@ -10,12 +10,11 @@ interface DecodedToken {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-	const token = req.headers.authorization?.split(" ")[1];
+	const authHeader = req.headers.authorization;
+	const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 
 	if (!token) {
-		(req as any).userId = process.env.DEMO_USER_ID || "demo-user";
-		(req as any).userName = process.env.DEMO_USER_NAME || "Demo User";
-		return next();
+		return res.status(401).json({ success: false, error: "Authorization token required" });
 	}
 
 	try {
@@ -25,9 +24,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 		(req as any).userName = decoded.name || "Unknown User";
 		next();
 	} catch (error) {
-		(req as any).userId = process.env.DEMO_USER_ID || "demo-user";
-		(req as any).userName = process.env.DEMO_USER_NAME || "Demo User";
-		next();
+		return res.status(401).json({ success: false, error: "Invalid or expired token" });
 	}
 };
 

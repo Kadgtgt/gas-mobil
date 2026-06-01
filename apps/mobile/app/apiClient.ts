@@ -22,13 +22,13 @@ const resolveApiUrls = (): string[] => {
 	if (debuggerHost) {
 		const host = debuggerHost.split(":")[0];
 		if (host) {
-			urls.push(`http://${host}:5001/api`);
+			urls.push(`http://${host}:5000/api`);
 		}
 	}
 
-	urls.push(`http://${LOCAL_HOST_IP}:5001/api`);
-	urls.push("http://10.0.2.2:5001/api");
-	urls.push("http://127.0.0.1:5001/api");
+	urls.push(`http://${LOCAL_HOST_IP}:5000/api`);
+	urls.push("http://10.0.2.2:5000/api");
+	urls.push("http://127.0.0.1:5000/api");
 
 	return urls.filter(Boolean);
 };

@@ -1,19 +1,26 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: gas-mobil-mongodb
+  mysql:
+    image: mysql:8.0
+    container_name: gas-mobil-mysql
     ports:
-      - '27017:27017'
+      - '3306:3306'
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: gas-mobil
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: gas_mobil
+      MYSQL_USER: gas_mobil_user
+      MYSQL_PASSWORD: admin123
     volumes:
-      - mongodb_data:/data/db
+      - mysql_data:/var/lib/mysql
+      - ./apps/api/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - gas-mobil-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -23,11 +30,16 @@ services:
     ports:
       - '5000:5000'
     depends_on:
-      - mongodb
+      mysql:
+        condition: service_healthy
     environment:
       NODE_ENV: development
       PORT: 5000
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/gas-mobil?authSource=admin
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: gas_mobil_user
+      DB_PASSWORD: admin123
+      DB_DATABASE: gas_mobil
       JWT_SECRET: your_jwt_secret_key_here
       STRIPE_SECRET_KEY: sk_test_your_stripe_secret_key
     volumes:
@@ -35,6 +47,7 @@ services:
     networks:
       - gas-mobil-network
     command: npm run dev
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -45,7 +58,7 @@ services:
       - gas-mobil-network
 
 volumes:
-  mongodb_data:
+  mysql_data:
 
 networks:
   gas-mobil-network:

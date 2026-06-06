@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Order } from './Order';
 
 export interface ILocationPoint {
   latitude: number;
@@ -18,6 +21,10 @@ export class Delivery {
 
   @Column({ unique: true })
   orderId: string;
+
+  @ManyToOne(() => Order, (order) => order.deliveries, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
+  order: Order;
 
   @Column()
   driverId: string;

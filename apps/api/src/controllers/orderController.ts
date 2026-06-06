@@ -1,136 +1,137 @@
 import { Request, Response } from "express";
-import Order from "../models/Order";
-import Delivery from "../models/Delivery";
+import { AppDataSource } from "../config/database";
+import { Order } from "../entities/Order";
+import { OrderItem } from "../entities/OrderItem";
+import { Product } from "../entities/Product";
+import { Delivery } from "../entities/Delivery";
+
+const orderRepository = AppDataSource.getRepository(Order);
+const orderItemRepository = AppDataSource.getRepository(OrderItem);
+const productRepository = AppDataSource.getRepository(Product);
+const deliveryRepository = AppDataSource.getRepository(Delivery);
 
 export const createOrder = async (req: Request, res: Response) => {
-	try {
-		const { items, cylinderId, quantity, totalPrice, deliveryAddress, paymentMethod } =
-			req.body;
-		const userId = (req as any).userId || process.env.DEMO_USER_ID || "demo-user";
-		const userName = (req as any).userName || process.env.DEMO_USER_NAME || "Demo User";
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
-		if (!deliveryAddress) {
-			return res.status(400).json({ success: false, error: "Delivery address is required" });
-		}
+  try {
+    const { items, deliveryAddress, deliveryCity, deliveryLatitude, deliveryLongitude, notes } = req.body;
+    const userId = (req as any).userId || process.env.DEMO_USER_ID || "demo-user";
 
-		if (!paymentMethod) {
-			return res.status(400).json({ success: false, error: "Payment method is required" });
-		}
+    if (!deliveryAddress) {
+      return res.status(400).json({ success: false, error: "Delivery address is required" });
+    }
 
-		const orderItems =
-			Array.isArray(items) && items.length > 0 ? items
-			: cylinderId && quantity ?
-				[
-					{
-						itemId: cylinderId,
-						name: "Gas Cylinder",
-						type: "cylinder",
-						unitPrice: totalPrice / quantity,
-						quantity,
-					},
-				]
-			:	[];
+    let totalAmount = 0;
+    const orderItems: OrderItem[] = [];
 
-		const computedTotal =
-			totalPrice ||
-			orderItems.reduce((sum: number, item: any) => sum + item.unitPrice * item.quantity, 0);
+    // Create order items and calculate total
+    if (items && Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        const product = await queryRunner.manager.findOne(Product, { where: { id: item.productId } });
+        if (!product) {
+          throw new Error(`Product ${item.productId} not found`);
+        }
 
-		// Allow creating orders even when `items` is empty.
-		// Some clients may place orders without a cart (e.g., quick cylinder orders),
-		// so we skip the strict items length validation and let the order be created
-		// with an empty items array if needed. The schema supports no items.
+        const subtotal = Number(product.price) * item.quantity;
+        totalAmount += subtotal;
 
-		const order = new Order({
-			userId,
-			userName,
-			items: orderItems,
-			cylinderId: cylinderId || orderItems[0]?.itemId,
-			quantity:
-				quantity || orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
-			totalPrice: computedTotal,
-			deliveryAddress,
-			paymentMethod,
-			orderType: req.body.orderType,
-			paymentStatus: "pending",
-		});
+        const orderItem = queryRunner.manager.create(OrderItem, {
+          productId: product.id,
+          quantity: item.quantity,
+          price: product.price,
+          subtotal,
+        });
+        orderItems.push(orderItem);
+      }
+    }
 
-		await order.save();
+    // Create order
+    const order = queryRunner.manager.create(Order, {
+      userId,
+      totalAmount,
+      deliveryAddress,
+      deliveryCity,
+      deliveryLatitude,
+      deliveryLongitude,
+      notes,
+      status: "pending",
+    });
 
-		const delivery = new Delivery({
-			orderId: order._id.toString(),
-			driverId: "demo-driver",
-			driverName: "Moses K.",
-			driverPhone: "+256700000000",
-			vehicleNumber: "UAX 234B",
-			currentLocation: {
-				latitude: 0.3476,
-				longitude: 32.5825,
-			},
-			estimatedArrival: new Date(Date.now() + 30 * 60 * 1000),
-			status: "assigned",
-			route: [{ latitude: 0.3476, longitude: 32.5825 }],
-		});
+    const savedOrder = await queryRunner.manager.save(order);
 
-		await delivery.save();
+    // Save order items with orderId
+    for (const item of orderItems) {
+      item.orderId = savedOrder.id;
+      await queryRunner.manager.save(item);
+    }
 
-		res.status(201).json({
-			success: true,
-			data: {
-				order,
-				delivery,
-			},
-		});
-	} catch (error: any) {
-		res.status(500).json({ success: false, error: error.message });
-	}
+    await queryRunner.commitTransaction();
+
+    const createdOrder = await orderRepository.findOne({
+      where: { id: savedOrder.id },
+      relations: ["items", "items.product"],
+    });
+
+    res.status(201).json(createdOrder);
+  } catch (error: any) {
+    await queryRunner.rollbackTransaction();
+    console.error("Error creating order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  } finally {
+    await queryRunner.release();
+  }
 };
 
 export const getOrders = async (req: Request, res: Response) => {
-	try {
-		const userId = (req as any).userId || process.env.DEMO_USER_ID || "demo-user";
-		const orders = await Order.find({ userId });
-
-		res.json({
-			success: true,
-			data: orders,
-		});
-	} catch (error: any) {
-		res.status(500).json({ success: false, error: error.message });
-	}
+  try {
+    const userId = (req as any).userId || req.params.userId || process.env.DEMO_USER_ID || "demo-user";
+    const orders = await orderRepository.find({
+      where: { userId },
+      relations: ["items", "items.product"],
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 export const getOrderById = async (req: Request, res: Response) => {
-	try {
-		const { id } = req.params;
-		const order = await Order.findById(id);
+  try {
+    const { id } = req.params;
+    const order = await orderRepository.findOne({
+      where: { id },
+      relations: ["items", "items.product", "deliveries"],
+    });
 
-		if (!order) {
-			return res.status(404).json({ success: false, error: "Order not found" });
-		}
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
 
-		res.json({
-			success: true,
-			data: order,
-		});
-	} catch (error: any) {
-		res.status(500).json({ success: false, error: error.message });
-	}
+    res.json(order);
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 export const cancelOrder = async (req: Request, res: Response) => {
-	try {
-		const { id } = req.params;
-		const order = await Order.findByIdAndUpdate(id, { status: "cancelled" }, { new: true });
+  try {
+    const { id } = req.params;
+    const order = await orderRepository.findOne({ where: { id } });
 
-		if (!order) {
-			return res.status(404).json({ success: false, error: "Order not found" });
-		}
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
 
-		res.json({
-			success: true,
-			data: order,
-		});
-	} catch (error: any) {
-		res.status(500).json({ success: false, error: error.message });
-	}
+    order.status = "cancelled";
+    await orderRepository.save(order);
+
+    res.json(order);
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };

@@ -1,8 +1,9 @@
 {
-    "liveServer.settings.port": 5501,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "prettier.vueIndentScriptAndStyle": true,
-    "prettier.useTabs": true,
-    "prettier.experimentalTernaries": true,
-    "prettier.enableDebugLogs": true
+	"liveServer.settings.port": 5501,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"prettier.vueIndentScriptAndStyle": true,
+	"prettier.useTabs": true,
+	"prettier.experimentalTernaries": true,
+	"prettier.enableDebugLogs": true,
+	"sqltools.connections": []
 }

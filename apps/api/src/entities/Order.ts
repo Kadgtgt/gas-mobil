@@ -5,17 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { User } from './User';
-
-export interface IOrderItem {
-  itemId: string;
-  name: string;
-  type: 'accessory' | 'cylinder';
-  unitPrice: number;
-  quantity: number;
-}
+import { OrderItem } from './OrderItem';
+import { Delivery } from './Delivery';
 
 @Entity('orders')
 export class Order {
@@ -29,37 +24,31 @@ export class Order {
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ type: 'json', nullable: true })
-  items: IOrderItem[];
-
-  @Column({ nullable: true })
-  cylinderId: string;
-
-  @Column({ nullable: true })
-  quantity: number;
+  @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
+  items: OrderItem[];
 
   @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalPrice: number;
+  totalAmount: number;
 
-  @Column({
-    default: 'pending',
-    enum: ['pending', 'confirmed', 'in_delivery', 'delivered', 'cancelled'],
-  })
+  @Column({ default: 'pending' })
   status: string;
 
   @Column()
   deliveryAddress: string;
 
   @Column({ nullable: true })
-  deliveryDate: Date;
+  deliveryCity: string;
 
-  @Column({ enum: ['mtn', 'airtel', 'visa', 'wallet', 'cash'] })
+  @Column({ nullable: true, type: 'decimal', precision: 10, scale: 6 })
+  deliveryLatitude: number;
+
+  @Column({ nullable: true, type: 'decimal', precision: 10, scale: 6 })
+  deliveryLongitude: number;
+
+  @Column({ nullable: true, enum: ['mtn', 'airtel', 'visa', 'wallet', 'cash'] })
   paymentMethod: string;
 
-  @Column({
-    default: 'pending',
-    enum: ['pending', 'completed', 'failed'],
-  })
+  @Column({ default: 'pending', enum: ['pending', 'completed', 'failed'] })
   paymentStatus: string;
 
   @Column({ nullable: true, enum: ['quick', 'swap', 'buy_new', 'find_agent'] })
@@ -70,6 +59,9 @@ export class Order {
 
   @Column({ nullable: true })
   notes: string;
+
+  @OneToMany(() => Delivery, (delivery) => delivery.order)
+  deliveries: Delivery[];
 
   @CreateDateColumn()
   createdAt: Date;

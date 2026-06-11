@@ -8,29 +8,27 @@ import {
   Index,
 } from 'typeorm';
 import { Order } from './Order';
-import bcrypt from 'bcryptjs';
 
 @Entity('users')
 @Index(['email'], { unique: true })
-@Index(['phone'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  name: string;
+  firstName: string;
+
+  @Column()
+  lastName: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column({ unique: true })
-  phone: string;
+  @Column()
+  phoneNumber: string;
 
-  @Column({ select: false })
+  @Column()
   password: string;
-
-  @Column({ nullable: true })
-  avatar: string;
 
   @Column({ nullable: true })
   address: string;
@@ -39,19 +37,16 @@ export class User {
   city: string;
 
   @Column({ nullable: true })
-  state: string;
+  latitude: number;
 
   @Column({ nullable: true })
-  zipCode: string;
+  longitude: number;
 
-  @Column({ default: 'user', enum: ['user', 'admin', 'driver'] })
+  @Column({ default: 'customer', enum: ['customer', 'delivery', 'admin'] })
   role: string;
 
-  @Column({ default: false })
-  isEmailVerified: boolean;
-
-  @Column({ default: false })
-  isPhoneVerified: boolean;
+  @Column({ default: true })
+  isActive: boolean;
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
@@ -61,8 +56,4 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  async comparePassword(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.password);
-  }
 }

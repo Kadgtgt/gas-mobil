@@ -1,17 +1,26 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import 'reflect-metadata';
+import { DataSource } from 'typeorm';
+import { User } from '../entities/User';
+import { Product } from '../entities/Product';
+import { Order } from '../entities/Order';
+import { OrderItem } from '../entities/OrderItem';
+import { Delivery } from '../entities/Delivery';
+import { Cylinder } from '../entities/Cylinder';
+import { Accessory } from '../entities/Accessory';
+import { Wallet } from '../entities/Wallet';
 
-dotenv.config();
+export const AppDataSource = new DataSource({
+  type: 'mysql',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '3306'),
+  username: process.env.DB_USERNAME || 'root',
+  password: process.env.DB_PASSWORD || '',        // empty string for XAMPP default
+  database: process.env.DB_DATABASE || 'gas_mobil',
+  synchronize: process.env.NODE_ENV !== 'production',  // auto-creates tables (dev only!)
+  logging: process.env.NODE_ENV === 'development',
+  entities: [User, Product, Order, OrderItem, Delivery, Cylinder, Accessory, Wallet],
+  migrations: ['src/migrations/*.ts'],
+  subscribers: ['src/subscribers/*.ts'],
+});
 
-const dbConnect = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/gas-mobil');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    return conn;
-  } catch (error) {
-    console.error('MongoDB Connection Error:', error);
-    process.exit(1);
-  }
-};
-
-export default dbConnect;
+export default AppDataSource;

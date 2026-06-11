@@ -1,14 +1,17 @@
 import { Request, Response } from 'express';
-import Wallet from '../models/Wallet';
+import { AppDataSource } from '../config/database';
+import { Wallet } from '../entities/Wallet';
+
+const walletRepository = AppDataSource.getRepository(Wallet);
 
 export const getWallet = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    let wallet = await Wallet.findOne({ userId });
+    let wallet = await walletRepository.findOneBy({ userId });
 
     if (!wallet) {
-      wallet = new Wallet({ userId, balance: 0, transactions: [] });
-      await wallet.save();
+      wallet = walletRepository.create({ userId, balance: 0, transactions: [] });
+      await walletRepository.save(wallet);
     }
 
     res.json({ success: true, data: wallet });
@@ -22,12 +25,15 @@ export const addMoneyToWallet = async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const { amount } = req.body;
 
-    let wallet = await Wallet.findOne({ userId });
+    let wallet = await walletRepository.findOneBy({ userId });
     if (!wallet) {
-      wallet = new Wallet({ userId, balance: 0, transactions: [] });
+      wallet = walletRepository.create({ userId, balance: 0, transactions: [] });
     }
 
-    wallet.balance += amount;
+    wallet.balance = Number(wallet.balance) + Number(amount);
+    if (!wallet.transactions) {
+      wallet.transactions = [];
+    }
     wallet.transactions.push({
       id: `TXN-${Date.now()}`,
       amount,
@@ -36,7 +42,7 @@ export const addMoneyToWallet = async (req: Request, res: Response) => {
       date: new Date(),
     });
 
-    await wallet.save();
+    await walletRepository.save(wallet);
     res.json({ success: true, data: wallet });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });

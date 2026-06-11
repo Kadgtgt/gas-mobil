@@ -1,40 +1,49 @@
-import { Request, Response } from 'express';
-import User, { IUser } from '../models/User';
-import { generateToken } from '../middleware/auth';
+import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import { AppDataSource } from "../config/database";
+import { User } from "../entities/User";
+import { generateToken } from "../middleware/auth";
+
+const userRepository = AppDataSource.getRepository(User);
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { name, email, phone, password, address, city, state, zipCode } = req.body;
 
     // Check if user exists
-    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+    const existingUser = await userRepository.findOne({
+      where: [{ email }, { phone }],
+    });
     if (existingUser) {
-      return res.status(400).json({ success: false, error: 'User already exists' });
+      return res.status(400).json({ success: false, error: "User already exists" });
     }
 
+    // Hash password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
-    const user = new User({
+    const user = userRepository.create({
       name,
       email,
       phone,
-      password,
+      password: hashedPassword,
       address,
       city,
       state,
       zipCode,
     });
 
-    await user.save();
+    await userRepository.save(user);
 
     // Generate token
-    const token = generateToken(user._id.toString(), user.email);
+    const token = generateToken(user.id, user.email, user.name);
 
     res.status(201).json({
       success: true,
       data: {
         token,
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -48,29 +57,36 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, phone, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email }).select('+password');
+    if (!password || (!email && !phone)) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Email or phone and password are required" });
+    }
+
+    const query = email ? { email } : { phone };
+    const user = await userRepository.findOne({
+      where: query,
+      select: ["id", "name", "email", "phone", "password"],
+    });
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: "Invalid credentials" });
     }
 
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: "Invalid credentials" });
     }
 
-    // Generate token
-    const token = generateToken(user._id.toString(), user.email);
+    const token = generateToken(user.id, user.email, user.name);
 
     res.json({
       success: true,
       data: {
         token,
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone,
@@ -85,17 +101,17 @@ export const login = async (req: Request, res: Response) => {
 export const verify = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const user = await User.findById(userId);
+    const user = await userRepository.findOneBy({ id: userId });
 
     if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
+      return res.status(404).json({ success: false, error: "User not found" });
     }
 
     res.json({
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           name: user.name,
           email: user.email,
           phone: user.phone,

@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { OrderItem } from './OrderItem';
 
 @Entity('products')
 export class Product {
@@ -23,11 +25,23 @@ export class Product {
   @Column({ default: 0 })
   stock: number;
 
-  @Column()
+  @Column({ nullable: true })
   weight: number;
 
-  @Column()
+  @Column({ nullable: true })
+  size: string;
+
+  @Column({ nullable: true })
+  imageUrl: string;
+
+  @Column({ default: true })
+  isAvailable: boolean;
+
+  @Column({ nullable: true })
   type: string;
+
+  @OneToMany(() => OrderItem, (item) => item.product)
+  orderItems: OrderItem[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -24,7 +24,7 @@ Gas Mobil is a complete solution for gas cylinder delivery services featuring:
 - Real-time delivery tracking
 - Payment processing (Stripe)
 - Admin dashboard API
-- Database with MongoDB
+- Database with MYSQL
 - JWT-based security
 
 ## 📊 Architecture
